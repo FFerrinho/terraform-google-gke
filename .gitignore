@@ -1,7 +1,10 @@
 # Local .terraform directories
 **/.terraform/*
+
+# Other local directories to ignore
 **/.history/*
 **/.infracost/*
+**/.vscode/*
 
 # .tfstate files
 *.tfstate
