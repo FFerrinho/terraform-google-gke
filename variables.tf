@@ -677,3 +677,11 @@ variable "node_pool" {
     error_message = "The placement_policy type must be COMPACT."
   }
 }
+
+## Cloud router
+
+variable "router_name" {
+  description = "The name of the router."
+  type        = string
+  default     = null
+}

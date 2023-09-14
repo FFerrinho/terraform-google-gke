@@ -203,7 +203,7 @@ resource "google_container_cluster" "main" {
   }
 
   monitoring_service = var.monitoring_service
-  network            = var.network
+  network            = data.google_compute_network.main.self_link
 
   dynamic "network_policy" {
     for_each = var.network_policy
