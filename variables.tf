@@ -294,9 +294,9 @@ variable "monitoring_service" {
 }
 
 variable "network" {
-  description = "The name or self_link of the Google Compute Engine network to which the cluster is connected."
+  description = "The name of the Google Compute Engine network to which the cluster is connected."
   type        = string
-  default     = null
+  
 }
 
 variable "network_policy" {
@@ -414,9 +414,8 @@ variable "resource_usage_export_config" {
 }
 
 variable "subnetwork" {
-  description = "The name or self_link of the Google Compute Engine subnetwork to which the cluster is connected."
+  description = "The name of the Google Compute Engine subnetwork to which the cluster is connected."
   type        = string
-  default     = null
 }
 
 variable "vertical_pod_autoscaling_enabled" {

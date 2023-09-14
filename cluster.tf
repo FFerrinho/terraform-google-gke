@@ -260,7 +260,7 @@ resource "google_container_cluster" "main" {
     }
   }
 
-  project = var.project
+  project = data.google_project.main.id
 
   dynamic "release_channel" {
     for_each = toset(var.release_channel ? [1] : [])
@@ -293,7 +293,7 @@ resource "google_container_cluster" "main" {
     }
   }
 
-  subnetwork = var.subnetwork
+  subnetwork = data.google_compute_subnetwork.gke.self_link
 
   dynamic "vertical_pod_autoscaling" {
     for_each = toset(var.vertical_pod_autoscaling_enabled ? [1] : [])

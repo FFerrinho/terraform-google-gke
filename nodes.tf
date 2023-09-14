@@ -175,7 +175,7 @@ resource "google_container_node_pool" "main" {
   }
 
   node_count = each.value["node_count"]
-  project    = var.project
+  project    = data.google_project.main.id
 
   dynamic "upgrade_settings" {
     for_each = each.value["upgrade_settings"]
