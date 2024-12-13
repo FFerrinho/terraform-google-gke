@@ -3,18 +3,22 @@ data "google_project" "main" {
 }
 
 resource "google_container_cluster" "main" {
-  name                = var.cluster_name
-  location            = var.node_locations != null ? null : var.cluster_location
-  node_locations      = var.node_locations
-  deletion_protection = var.enable_cluster_deletion_protection
-  allow_net_admin     = var.enable_autopilot == true ? true : var.allow_net_admin
-  description         = var.cluster_description
-  enable_autopilot    = var.enable_autopilot
-  initial_node_count  = var.initial_node_count
-  networking_mode     = var.networking_mode
-  min_master_version  = var.min_master_version
-  network             = var.network
-  node_version        = var.min_master_version # Mandatory to be equal to the min_master_version, either set or unset
+  name                     = var.cluster_name
+  location                 = var.node_locations != null ? null : var.cluster_location
+  node_locations           = var.node_locations
+  deletion_protection      = var.enable_cluster_deletion_protection
+  allow_net_admin          = var.enable_autopilot == true ? true : var.allow_net_admin
+  description              = var.cluster_description
+  enable_autopilot         = var.enable_autopilot
+  initial_node_count       = var.initial_node_count
+  networking_mode          = var.networking_mode
+  min_master_version       = var.min_master_version
+  network                  = var.network
+  node_version             = var.min_master_version # Mandatory to be equal to the min_master_version, either set or unset
+  project                  = data.google_project.main.project_id
+  remove_default_node_pool = var.remove_default_node_pool
+  subnetwork               = var.cluster_subnetwork
+  resource_labels          = var.resource_labels
 
   addons_config {
     horizontal_pod_autoscaling {
@@ -211,11 +215,68 @@ resource "google_container_cluster" "main" {
     }
   }
 
+  dynamic "private_cluster_config" {
+    for_each = var.private_cluster_config != null ? [var.private_cluster_config] : []
+    content {
+      enable_private_nodes        = private_cluster_config.value.enable_private_nodes
+      enable_private_endpoint     = private_cluster_config.value.enable_private_nodes
+      master_ipv4_cidr_block      = private_cluster_config.value.enable_private_nodes == true ? private_cluster_config.value.master_ipv4_cidr_block : null # Only applies if private_nodes are enabled
+      private_endpoint_subnetwork = private_cluster_config.value.private_endpoint_subnetwork
+
+      master_global_access_config {
+        enabled = private_cluster_config.value.master_global_access_enabled
+      }
+
+    }
+  }
+
+  release_channel {
+    channel = var.kubernetes_release_channel
+  }
+
+  vertical_pod_autoscaling {
+    enabled = var.vertical_pod_autoscaling_enabled
+  }
+
+  dynamic "workload_identity_config" {
+    for_each = var.workload_identity_config != null ? [var.workload_identity_config] : []
+    content {
+      workload_pool = workload_identity_config.value.workload_pool
+    }
+  }
+
+  dynamic "dns_config" {
+    for_each = var.dns_config != null ? [var.dns_config] : []
+    content {
+      additive_vpc_scope_dns_domain = dns_config.value.additive_vpc_scope_dns_domain
+      cluster_dns                   = dns_config.value.cluster_dns
+      cluster_dns_scope             = dns_config.value.cluster_dns_scope
+      cluster_dns_domain            = dns_config.value.cluster_dns_domain
+    }
+  }
+
+  gateway_api_config {
+    channel = var.gateway_api_channel
+  }
+
 
   lifecycle {
     precondition {
       condition     = !(var.node_locations == null && var.cluster_location == null)
       error_message = "Either cluster_location or node_locations must be provided. Unless your cluster nodes need to be in specific zones, please provide the value for cluster_location."
+    }
+
+    precondition {
+      condition = var.private_cluster_config == null ? true : (
+        !var.private_cluster_config.enable_private_nodes ? true : (
+          var.private_cluster_config.master_ipv4_cidr_block == null ? false :
+      can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}/28$", var.private_cluster_config.master_ipv4_cidr_block))))
+      error_message = "master_ipv4_cidr_block must be a valid IPv4 /28 CIDR block when private nodes are enabled"
+    }
+
+    precondition {
+      condition     = var.workload_identity_config == null ? true : can(regex("^[a-z0-9-]+\\.svc\\.id\\.goog$", var.workload_identity_config.workload_pool))
+      error_message = "workload_pool must be in the format: PROJECT_ID.svc.id.goog"
     }
   }
 }

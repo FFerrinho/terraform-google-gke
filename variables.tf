@@ -72,6 +72,25 @@ variable "network" {
   type        = string
 }
 
+variable "remove_default_node_pool" {
+  description = "If the default node pool should be removed."
+  type        = bool
+  default     = true
+}
+
+variable "cluster_subnetwork" {
+  description = "The subnetwork for the cluster."
+  type        = string
+}
+
+variable "resource_labels" {
+  description = "The resource labels for the cluster."
+  type        = map(string)
+  default = {
+    provisioned_by = "terraform"
+  }
+}
+
 variable "addons_config" {
   description = "The addons configuration for the cluster."
   type = object({
@@ -309,5 +328,85 @@ variable "authenticator_groups_config" {
   })
   default = {
     security_group = null
+  }
+}
+
+variable "private_cluster_config" {
+  description = "The private cluster configuration for the cluster."
+  type = object({
+    enable_private_nodes         = bool
+    enable_private_endpoint      = bool
+    master_ipv4_cidr_block       = optional(string)
+    private_endpoint_subnetwork  = optional(string)
+    master_global_access_enabled = bool
+  })
+  default = {
+    enable_private_nodes         = false
+    enable_private_endpoint      = false
+    master_ipv4_cidr_block       = null
+    private_endpoint_subnetwork  = null
+    master_global_access_enabled = false
+  }
+}
+
+variable "kubernetes_release_channel" {
+  description = "The Kubernetes release channel for the cluster."
+  type        = string
+  default     = "UNSPECIFIED"
+
+  validation {
+    condition     = contains(["UNSPECIFIED", "RAPID", "REGULAR", "STABLE", "EXTENDED"], var.kubernetes_release_channel)
+    error_message = "kubernetes_release_channel must be one of: UNSPECIFIED, RAPID, REGULAR, STABLE, or EXTENDED"
+  }
+}
+
+variable "vertical_pod_autoscaling_enabled" {
+  description = "If vertical pod autoscaling is enabled for the cluster."
+  type        = bool
+  default     = false
+}
+
+variable "workload_identity_config" {
+  description = "The workload identity configuration for the cluster."
+  type = object({
+    workload_pool = string
+  })
+  default = null
+}
+
+variable "dns_config" {
+  description = "The DNS configuration for the cluster."
+  type = object({
+    additive_vpc_scope_dns_domain = optional(string)
+    cluster_dns                   = string
+    cluster_dns_scope             = optional(string)
+    cluster_dns_domain            = optional(string)
+  })
+  default = {
+    additive_vpc_scope_dns_domain = null
+    cluster_dns                   = "PLATFORM_DEFAULT" # Best solution if Cloud DNS isn't used in the project.
+    cluster_dns_scope             = null
+    cluster_dns_domain            = null
+  }
+
+  validation {
+    condition     = contains(["PROVIDER_UNSPECIFIED", "PLATFORM_DEFAULT", "CLOUD_DNS"], var.dns_config.cluster_dns)
+    error_message = "cluster_dns must be one of: PROVIDER_UNSPECIFIED, PLATFORM_DEFAULT, or CLOUD_DNS"
+  }
+
+  validation {
+    condition     = var.dns_config.cluster_dns_scope == null ? true : contains(["DNS_SCOPE_UNSPECIFIED", "CLUSTER_SCOPE", "VPC_SCOPE"], var.dns_config.cluster_dns_scope)
+    error_message = "cluster_dns_scope must be one of: DNS_SCOPE_UNSPECIFIED, CLUSTER_SCOPE, or VPC_SCOPE"
+  }
+}
+
+variable "gateway_api_channel" {
+  description = "Enables GKE Gateway API support."
+  type = string
+  default = "CHANNEL_STANDARD"
+
+  validation {
+    condition     = contains(["CHANNEL_DISABLED", "CHANNEL_EXPERIMENTAL", "CHANNEL_STANDARD"], var.gateway_api_channel)
+    error_message = "gateway_api_channel must be one of: CHANNEL_DISABLED, CHANNEL_EXPERIMENTAL, or CHANNEL_STANDARD"
   }
 }
