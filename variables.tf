@@ -1,7 +1,11 @@
+##### 🌎 Generic variables #####
+
 variable "project_id" {
   description = "The project ID where the resources will be provisioned."
   type        = string
 }
+
+##### 🌐 Cluster variables #####
 
 variable "cluster_name" {
   description = "The name of the cluster."
@@ -402,11 +406,107 @@ variable "dns_config" {
 
 variable "gateway_api_channel" {
   description = "Enables GKE Gateway API support."
-  type = string
-  default = "CHANNEL_STANDARD"
+  type        = string
+  default     = "CHANNEL_STANDARD"
 
   validation {
     condition     = contains(["CHANNEL_DISABLED", "CHANNEL_EXPERIMENTAL", "CHANNEL_STANDARD"], var.gateway_api_channel)
     error_message = "gateway_api_channel must be one of: CHANNEL_DISABLED, CHANNEL_EXPERIMENTAL, or CHANNEL_STANDARD"
+  }
+}
+
+##### 🔄 Node pool variables #####
+
+variable "node_pool_autoscaling" {
+  description = "The node pool autoscaling configuration for the cluster."
+  type = object({
+    min_node_count       = number
+    max_node_count       = number
+    total_min_node_count = number
+    total_max_node_count = number
+    location_policy      = string
+  })
+  default = {
+    min_node_count       = 1
+    max_node_count       = 1
+    total_min_node_count = 1
+    total_max_node_count = 1
+    location_policy      = "BALANCED"
+  }
+
+  validation {
+    condition     = contains(["BALANCED", "ANY"], var.node_pool_autoscaling.location_policy)
+    error_message = "location_policy must be either BALANCED or ANY"
+  }
+}
+
+variable "node_pool_auto_repair_enabled" {
+  description = "If node pool auto repair is enabled for the cluster."
+  type        = bool
+  default     = true
+}
+
+variable "node_pool_auto_upgrade_enabled" {
+  description = "If node pool auto upgrade is enabled for the cluster."
+  type        = bool
+  default     = false
+}
+
+variable "max_pods_per_node" {
+  description = "The maximum number of pods per node for the cluster."
+  type        = number
+  default     = null
+}
+
+variable "node_pool_name" {
+  description = "The name of the node pool. If not provided GKE will create a random unique name."
+  type        = string
+  default     = null
+}
+
+variable "node_pool_name_prefix" {
+  description = "The prefix of the node pool name. This will preffix the random unique name if node_pool_name is not provided."
+  type        = string
+  default     = null
+}
+
+variable "node_config" {
+  description = "The node configuration for the cluster."
+  type = object({
+    disk_size_gb        = optional(number)
+    disk_type           = optional(string)
+    image_type          = optional(string)
+    machine_type        = optional(string)
+    preemptible_enabled = optional(bool) # Deprecated, if required, evaluate using spot instead.
+    spot_enabled        = optional(bool)
+    service_account     = optional(string)
+    tags                = set(string)
+    node_group          = optional(string)
+    gcfs_config_enabled = bool
+    gvnic_enabled       = bool
+    taint = optional(set(object({
+      key    = string
+      value  = string
+      effect = string
+    })))
+  })
+  default = {
+    disk_size_gb        = null
+    disk_type           = null
+    image_type          = null
+    machine_type        = null
+    preemptible_enabled = null
+    spot_enabled        = null
+    service_account     = null
+    tags                = null
+    node_group          = null
+    gcfs_config_enabled = false
+    gvnic_enabled       = true
+    taint               = null
+  }
+
+  validation {
+    condition     = var.node_config.service_account == null ? true : can(regex("^[a-z]([-a-z0-9]*[a-z0-9])?@[a-z]([-a-z0-9]*[a-z0-9])?\\.iam\\.gserviceaccount\\.com$", var.node_config.service_account))
+    error_message = "service_account must be a valid service account email (e.g., name@project-id.iam.gserviceaccount.com)"
   }
 }
