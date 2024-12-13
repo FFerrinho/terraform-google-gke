@@ -12,7 +12,9 @@ resource "google_container_cluster" "main" {
   enable_autopilot    = var.enable_autopilot
   initial_node_count  = var.initial_node_count
   networking_mode     = var.networking_mode
+  min_master_version  = var.min_master_version
   network             = var.network
+  node_version        = var.min_master_version # Mandatory to be equal to the min_master_version, either set or unset
 
   addons_config {
     horizontal_pod_autoscaling {
@@ -184,6 +186,31 @@ resource "google_container_cluster" "main" {
       }
     }
   }
+
+  dynamic "node_pool_defaults" {
+    for_each = var.node_pool_defaults != null ? [var.node_pool_defaults] : []
+    content {
+
+      node_config_defaults {
+        insecure_kubelet_readonly_port_enabled = node_pool_defaults.value.insecure_kubelet_readonly_port_enabled
+        gcfs_config {
+          enabled = node_pool_defaults.value.gcfs_config_enabled
+        }
+      }
+    }
+  }
+
+  secret_manager_config {
+    enabled = var.secret_manager_enabled
+  }
+
+  dynamic "authenticator_groups_config" {
+    for_each = var.authenticator_groups_config != null ? [var.authenticator_groups_config] : []
+    content {
+      security_group = authenticator_groups_config.value.security_group
+    }
+  }
+
 
   lifecycle {
     precondition {

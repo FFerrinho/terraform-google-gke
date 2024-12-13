@@ -61,6 +61,12 @@ variable "networking_mode" {
   }
 }
 
+variable "min_master_version" {
+  description = "The minimum master version for the cluster."
+  type        = string
+  default     = null
+}
+
 variable "network" {
   description = "The network for the cluster."
   type        = string
@@ -261,7 +267,7 @@ variable "network_policy" {
 }
 
 variable "node_pool_auto_config" {
-  description = "The node pool auto configuration for the cluster."
+  description = "The node pool auto configuration for the cluster with autopilot."
   type = object({
     node_kubelet_config = optional(object({
       insecure_kubelet_readonly_port_enabled = bool
@@ -275,5 +281,33 @@ variable "node_pool_auto_config" {
     }
     resource_manager_tags = null
     network_tags          = null
+  }
+}
+
+variable "node_pool_defaults" {
+  description = "The node pool defaults configuration for the cluster."
+  type = object({
+    insecure_kubelet_readonly_port_enabled = bool
+    gcfs_config_enabled                    = bool
+  })
+  default = {
+    insecure_kubelet_readonly_port_enabled = false
+    gcfs_config_enabled                    = false
+  }
+}
+
+variable "secret_manager_enabled" {
+  description = "If secret manager is enabled for the cluster."
+  type        = bool
+  default     = false
+}
+
+variable "authenticator_groups_config" {
+  description = "The authenticator groups configuration for the cluster."
+  type = object({
+    security_group = string
+  })
+  default = {
+    security_group = null
   }
 }
