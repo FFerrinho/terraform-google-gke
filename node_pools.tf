@@ -12,6 +12,9 @@ resource "google_container_node_pool" "main" {
   node_locations     = var.node_locations
   name               = var.node_pool_name
   name_prefix        = var.node_pool_name != null ? var.node_pool_name_prefix : null
+  node_count         = var.node_pool_autoscaling != null ? null : var.node_count
+  project            = data.google_project.main.project_id
+
 
   dynamic "autoscaling" {
     for_each = var.node_pool_autoscaling != null ? [var.node_pool_autoscaling] : []
@@ -40,6 +43,8 @@ resource "google_container_node_pool" "main" {
       spot            = node_config.value.spot_enabled
       service_account = node_config.value.service_account
       tags            = node_config.value.tags
+      node_group      = node_config.value.node_group
+
 
       gcfs_config {
         enabled = node_config.value.gcfs_config_enabled
@@ -59,6 +64,13 @@ resource "google_container_node_pool" "main" {
       }
     }
   }
+
+  upgrade_settings {
+    max_surge       = var.upgrade_settings.max_surge
+    max_unavailable = var.upgrade_settings.max_unavailable
+  }
+
+
 
   lifecycle {
     precondition {

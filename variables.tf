@@ -417,29 +417,6 @@ variable "gateway_api_channel" {
 
 ##### 🔄 Node pool variables #####
 
-variable "node_pool_autoscaling" {
-  description = "The node pool autoscaling configuration for the cluster."
-  type = object({
-    min_node_count       = number
-    max_node_count       = number
-    total_min_node_count = number
-    total_max_node_count = number
-    location_policy      = string
-  })
-  default = {
-    min_node_count       = 1
-    max_node_count       = 1
-    total_min_node_count = 1
-    total_max_node_count = 1
-    location_policy      = "BALANCED"
-  }
-
-  validation {
-    condition     = contains(["BALANCED", "ANY"], var.node_pool_autoscaling.location_policy)
-    error_message = "location_policy must be either BALANCED or ANY"
-  }
-}
-
 variable "node_pool_auto_repair_enabled" {
   description = "If node pool auto repair is enabled for the cluster."
   type        = bool
@@ -468,6 +445,35 @@ variable "node_pool_name_prefix" {
   description = "The prefix of the node pool name. This will preffix the random unique name if node_pool_name is not provided."
   type        = string
   default     = null
+}
+
+variable "node_count" {
+  description = "The number of nodes in the node pool."
+  type        = number
+  default     = null
+}
+
+variable "node_pool_autoscaling" {
+  description = "The node pool autoscaling configuration for the cluster."
+  type = object({
+    min_node_count       = number
+    max_node_count       = number
+    total_min_node_count = number
+    total_max_node_count = number
+    location_policy      = string
+  })
+  default = {
+    min_node_count       = 1
+    max_node_count       = 1
+    total_min_node_count = 1
+    total_max_node_count = 1
+    location_policy      = "BALANCED"
+  }
+
+  validation {
+    condition     = contains(["BALANCED", "ANY"], var.node_pool_autoscaling.location_policy)
+    error_message = "location_policy must be either BALANCED or ANY"
+  }
 }
 
 variable "node_config" {
@@ -508,5 +514,17 @@ variable "node_config" {
   validation {
     condition     = var.node_config.service_account == null ? true : can(regex("^[a-z]([-a-z0-9]*[a-z0-9])?@[a-z]([-a-z0-9]*[a-z0-9])?\\.iam\\.gserviceaccount\\.com$", var.node_config.service_account))
     error_message = "service_account must be a valid service account email (e.g., name@project-id.iam.gserviceaccount.com)"
+  }
+}
+
+variable "upgrade_settings" {
+  description = "The upgrade settings for the cluster."
+  type = object({
+    max_surge       = number
+    max_unavailable = number
+  })
+  default = {
+    max_surge       = 1
+    max_unavailable = 0
   }
 }
