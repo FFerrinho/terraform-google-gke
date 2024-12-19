@@ -5,13 +5,14 @@ data "google_compute_zones" "main" {
 }
 
 resource "google_container_node_pool" "main" {
+  for_each           = var.enable_autopilot != true ? var.node_pool : {}
   cluster            = google_container_cluster.main.name
   location           = var.cluster_location
-  initial_node_count = var.initial_node_count
+  initial_node_count = each.value.initial_node_count
   max_pods_per_node  = var.max_pods_per_node
   node_locations     = var.node_locations
-  name               = var.node_pool_name
-  name_prefix        = var.node_pool_name != null ? var.node_pool_name_prefix : null
+  name               = each.value.node_pool_name
+  name_prefix        = each.value.node_pool_name != null ? var.node_pool_name_prefix : null
   node_count         = var.node_pool_autoscaling != null ? null : var.node_count
   project            = data.google_project.main.project_id
 
@@ -86,7 +87,7 @@ resource "google_container_node_pool" "main" {
       error_message = "node_pool_autoscaling.total_min_node_count must be greater than or equal to 0 and less than or equal to total_max_node_count"
     }
     precondition {
-      condition     = length(regexall("^[a-z]+-[a-z]+[0-9]-[a-z]$", var.cluster_location)) > 0 ? var.node_locations == null || length(setsubtract(var.node_locations, [var.cluster_location])) == 0 : var.node_locations == null || length(setsubtract(var.node_locations, [for zone in data.google_compute_zones.main.names : zone if startswith(zone, substr(var.cluster_location, 0, length(var.cluster_location)))])) == 0
+      condition     = var.node_pool.node_locations == null ? true : length(regexall("^[a-z]+-[a-z]+[0-9]-[a-z]$", var.cluster_location)) > 0 ? length(setsubtract(var.node_locations, [var.cluster_location])) == 0 : length(setsubtract(var.node_locations, [for zone in data.google_compute_zones.main.names : zone if startswith(zone, substr(var.cluster_location, 0, length(var.cluster_location)))])) == 0
       error_message = "node_locations must be within the cluster_location zone/region"
     }
   }

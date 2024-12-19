@@ -162,6 +162,14 @@ variable "cluster_autoscaling" {
   }
 
   validation {
+    condition = var.cluster_autoscaling.resource_limits == null ? true : alltrue([
+      for limit in var.cluster_autoscaling.resource_limits :
+      contains(["cpu", "memory"], lower(limit.resource_type))
+    ])
+    error_message = "resource_type must be either 'cpu' or 'memory'"
+    }
+
+  validation {
     condition     = var.cluster_autoscaling.auto_auto_provisioning_defaults.service_account == null ? true : can(regex("^[a-z]([-a-z0-9]*[a-z0-9])?$", var.cluster_autoscaling.auto_auto_provisioning_defaults.service_account))
     error_message = "service_account must be a valid service account name"
   }
@@ -231,26 +239,22 @@ variable "maintenance_policy" {
       }))
     })))
   })
-  default = {
-    daily_maintenance_window = null
-    recurring_window         = null
-    maintenance_exclusion    = null
-  }
+  default = null
 
   validation {
-    condition     = var.maintenance_policy.daily_maintenance_window == null ? true : can(regex("^([0-1][0-9]|2[0-3]):[0-5][0-9]$", var.maintenance_policy.daily_maintenance_window.start_time))
+    condition     = var.maintenance_policy == null ? true : can(regex("^([0-1][0-9]|2[0-3]):[0-5][0-9]$", var.maintenance_policy.daily_maintenance_window.start_time))
     error_message = "daily_maintenance_window start_time must be in HH:mm format (00:00-23:59)"
   }
 
   validation {
-    condition = var.maintenance_policy.recurring_window == null ? true : (
+    condition = var.maintenance_policy == null ? true : (
       can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}T([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]Z$", var.maintenance_policy.recurring_window.start_time)) &&
     can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}T([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]Z$", var.maintenance_policy.recurring_window.end_time)))
     error_message = "recurring_window times must be in RFC3339 format"
   }
 
   validation {
-    condition     = var.maintenance_policy.recurring_window == null ? true : can(regex("^FREQ=(DAILY|WEEKLY|MONTHLY);(BYDAY=[A-Z,]+)?$", var.maintenance_policy.recurring_window.recurrence))
+    condition     = var.maintenance_policy == null ? true : can(regex("^FREQ=(DAILY|WEEKLY|MONTHLY);(BYDAY=[A-Z,]+)?$", var.maintenance_policy.recurring_window.recurrence))
     error_message = "recurring_window recurrence must be in iCal format (e.g., FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR)"
   }
 }
@@ -283,39 +287,35 @@ variable "network_policy" {
     provider = string
     enabled  = bool
   })
-  default = {
-    provider = "PROVIDER_UNSPECIFIED"
-    enabled  = false
-  }
+  default = null
 }
 
 variable "node_pool_auto_config" {
   description = "The node pool auto configuration for the cluster with autopilot."
   type = object({
     node_kubelet_config = optional(object({
-      insecure_kubelet_readonly_port_enabled = bool
+      insecure_kubelet_readonly_port_enabled = string
     }))
     resource_manager_tags = optional(map(string))
     network_tags          = optional(set(string))
   })
-  default = {
-    node_kubelet_config = {
-      insecure_kubelet_readonly_port_enabled = false
-    }
-    resource_manager_tags = null
-    network_tags          = null
-  }
+  default = {}
 }
 
 variable "node_pool_defaults" {
   description = "The node pool defaults configuration for the cluster."
   type = object({
-    insecure_kubelet_readonly_port_enabled = bool
+    insecure_kubelet_readonly_port_enabled = string
     gcfs_config_enabled                    = bool
   })
   default = {
-    insecure_kubelet_readonly_port_enabled = false
+    insecure_kubelet_readonly_port_enabled = "FALSE"
     gcfs_config_enabled                    = false
+  }
+
+  validation {
+    condition     = contains(["TRUE", "FALSE"], var.node_pool_defaults.insecure_kubelet_readonly_port_enabled)
+    error_message = "insecure_kubelet_readonly_port_enabled must be either TRUE or FALSE in upper case."
   }
 }
 
@@ -330,9 +330,7 @@ variable "authenticator_groups_config" {
   type = object({
     security_group = string
   })
-  default = {
-    security_group = null
-  }
+  default = null
 }
 
 variable "private_cluster_config" {
@@ -417,6 +415,16 @@ variable "gateway_api_channel" {
 
 ##### 🔄 Node pool variables #####
 
+variable "node_pool" {
+  description = "A map to create node pools attached to the cluster."
+  type = map(object({
+    initial_node_count = number
+    node_locations     = set(string)
+    node_pool_name     = string
+  }))
+  default = null
+}
+
 variable "node_pool_auto_repair_enabled" {
   description = "If node pool auto repair is enabled for the cluster."
   type        = bool
@@ -432,12 +440,6 @@ variable "node_pool_auto_upgrade_enabled" {
 variable "max_pods_per_node" {
   description = "The maximum number of pods per node for the cluster."
   type        = number
-  default     = null
-}
-
-variable "node_pool_name" {
-  description = "The name of the node pool. If not provided GKE will create a random unique name."
-  type        = string
   default     = null
 }
 

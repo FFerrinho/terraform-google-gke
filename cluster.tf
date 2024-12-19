@@ -16,7 +16,7 @@ resource "google_container_cluster" "main" {
   network                  = var.network
   node_version             = var.min_master_version # Mandatory to be equal to the min_master_version, either set or unset
   project                  = data.google_project.main.project_id
-  remove_default_node_pool = var.remove_default_node_pool
+  remove_default_node_pool = var.enable_autopilot == true ? null : var.remove_default_node_pool
   subnetwork               = var.cluster_subnetwork
   resource_labels          = var.resource_labels
 
@@ -27,8 +27,11 @@ resource "google_container_cluster" "main" {
     http_load_balancing {
       disabled = var.addons_config.disable_http_load_balancing
     }
-    network_policy_config {
-      disabled = var.addons_config.disable_network_policy_config
+    dynamic "network_policy_config" {
+      for_each = var.enable_autopilot == false ? [var.addons_config.network_policy_config] : []
+      content {
+        disabled = var.addons_config.disable_network_policy_config
+      }
     }
     gcp_filestore_csi_driver_config {
       enabled = var.addons_config.enable_gcp_filestore_csi_driver
@@ -99,10 +102,10 @@ resource "google_container_cluster" "main" {
   dynamic "ip_allocation_policy" {
     for_each = var.ip_allocation_policy != null ? [var.ip_allocation_policy] : []
     content {
-      cluster_secondary_range_name  = ip_allocation_policy.value.cluster_secondary_range_name
-      services_secondary_range_name = ip_allocation_policy.value.services_secondary_range_name
-      cluster_ipv4_cidr_block       = ip_allocation_policy.value.cluster_ipv4_cidr_block
-      services_ipv4_cidr_block      = ip_allocation_policy.value.services_ipv4_cidr_block
+      cluster_secondary_range_name  = ip_allocation_policy.value.cluster_secondary_range_name != null ? ip_allocation_policy.value.cluster_secondary_range_name : null
+      services_secondary_range_name = ip_allocation_policy.value.services_secondary_range_name != null ? ip_allocation_policy.value.services_secondary_range_name : null
+      cluster_ipv4_cidr_block       = ip_allocation_policy.value.cluster_secondary_range_name != null ? null : ip_allocation_policy.value.cluster_ipv4_cidr_block
+      services_ipv4_cidr_block      = ip_allocation_policy.value.services_secondary_range_name != null ? null : ip_allocation_policy.value.services_ipv4_cidr_block
       stack_type                    = ip_allocation_policy.value.stack_type
     }
   }
@@ -235,7 +238,7 @@ resource "google_container_cluster" "main" {
   }
 
   vertical_pod_autoscaling {
-    enabled = var.vertical_pod_autoscaling_enabled
+    enabled = var.enable_autopilot == true ? true : var.vertical_pod_autoscaling_enabled
   }
 
   dynamic "workload_identity_config" {
@@ -277,6 +280,11 @@ resource "google_container_cluster" "main" {
     precondition {
       condition     = var.workload_identity_config == null ? true : can(regex("^[a-z0-9-]+\\.svc\\.id\\.goog$", var.workload_identity_config.workload_pool))
       error_message = "workload_pool must be in the format: PROJECT_ID.svc.id.goog"
+    }
+
+    precondition {
+      condition     = !var.enable_autopilot || (var.kubernetes_release_channel != null && var.kubernetes_release_channel != "UNSPECIFIED")
+      error_message = "When autopilot is enabled, a release channel must be specified and cannot be UNSPECIFIED"
     }
   }
 }
