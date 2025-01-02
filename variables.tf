@@ -167,7 +167,7 @@ variable "cluster_autoscaling" {
       contains(["cpu", "memory"], lower(limit.resource_type))
     ])
     error_message = "resource_type must be either 'cpu' or 'memory'"
-    }
+  }
 
   validation {
     condition     = var.cluster_autoscaling.auto_auto_provisioning_defaults.service_account == null ? true : can(regex("^[a-z]([-a-z0-9]*[a-z0-9])?$", var.cluster_autoscaling.auto_auto_provisioning_defaults.service_account))
