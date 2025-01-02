@@ -170,8 +170,8 @@ variable "cluster_autoscaling" {
   }
 
   validation {
-    condition     = var.cluster_autoscaling.auto_auto_provisioning_defaults.service_account == null ? true : can(regex("^[a-z]([-a-z0-9]*[a-z0-9])?$", var.cluster_autoscaling.auto_auto_provisioning_defaults.service_account))
-    error_message = "service_account must be a valid service account name"
+    condition     = var.cluster_autoscaling.auto_auto_provisioning_defaults.service_account == null ? true : can(regex("^[a-z]([-a-z0-9]*[a-z0-9])?(@[a-z]([-a-z0-9]*[a-z0-9])?\\.iam\\.gserviceaccount\\.com)?$", var.cluster_autoscaling.auto_auto_provisioning_defaults.service_account))
+    error_message = "service_account must be a valid service account name or email (e.g., 'my-sa' or 'my-sa@project-id.iam.gserviceaccount.com')"
   }
 
   validation {
