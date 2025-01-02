@@ -27,7 +27,7 @@ variable "node_locations" {
 variable "enable_cluster_deletion_protection" {
   description = "If Terraform is allowed to delete the cluster."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "allow_net_admin" {
