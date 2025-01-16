@@ -290,6 +290,16 @@ variable "network_policy" {
   default = null
 }
 
+variable "default_node_config" {
+  description = "Parameters for the default node pool."
+  type = object({
+    preemptible     = optional(bool)
+    spot            = optional(bool)
+    service_account = optional(string)
+  })
+  default = null
+}
+
 variable "node_pool_auto_config" {
   description = "The node pool auto configuration for the cluster with autopilot."
   type = object({

@@ -172,6 +172,15 @@ resource "google_container_cluster" "main" {
     }
   }
 
+  dynamic "node_config" {
+    for_each = var.default_node_config != null ? [var.default_node_config] : []
+    content {
+      preemptible     = default_node_config.preemptible
+      spot            = default_node_config.spot
+      service_account = default_node_config.service_account
+    }
+  }
+
   dynamic "node_pool_auto_config" {
     for_each = var.node_pool_auto_config != null ? [var.node_pool_auto_config] : []
     content {
