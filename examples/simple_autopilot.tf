@@ -1,23 +1,22 @@
-data "google_compute_subnetwork" "compute" {
-  self_link = module.vpc.subnetwork_self_links[0]
-}
+module "gke_autopilot" {
+  source = "github.com/USERNAME/terraform-google-gke"
 
-module "gke" {
-  source = "git::git@github.com:FFerrinho/terraform-google-gke.git?ref=1.0"
+  # Required variables
+  project_id        = "my-project-id"
+  cluster_name      = "my-autopilot-cluster"
+  cluster_location  = "us-central1"  # Using regional cluster for autopilot
+  network          = "default"
+  cluster_subnetwork = "default"
 
-  cluster_name               = "cluster-fferrinho-autopilot"
-  cluster_location           = var.region
-  project_id                 = "celfocus-gcp-ccoe-cfmsem-9923"
-  enable_autopilot           = true
-  network                    = module.vpc.vpc_name
-  cluster_subnetwork         = data.google_compute_subnetwork.compute.self_link
-  kubernetes_release_channel = "STABLE"
+  # Enable autopilot
+  enable_autopilot = true
 
+  # IP allocation policy for VPC-native cluster
   ip_allocation_policy = {
-    cluster_ipv4_cidr_block       = data.google_compute_subnetwork.compute.secondary_ip_range[0].ip_cidr_range
-    cluster_secondary_range_name  = data.google_compute_subnetwork.compute.secondary_ip_range[0].range_name
-    services_ipv4_cidr_block      = data.google_compute_subnetwork.compute.secondary_ip_range[1].ip_cidr_range
-    services_secondary_range_name = data.google_compute_subnetwork.compute.secondary_ip_range[1].range_name
-    stack_type                    = "IPV4"
+    cluster_secondary_range_name  = "pods"
+    services_secondary_range_name = "services"
+    cluster_ipv4_cidr_block      = "10.100.0.0/16"
+    services_ipv4_cidr_block     = "10.101.0.0/16"
+    stack_type                   = "IPV4"
   }
 }

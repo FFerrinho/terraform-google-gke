@@ -280,10 +280,11 @@ resource "google_container_cluster" "main" {
 
     precondition {
       condition = var.private_cluster_config == null ? true : (
-        !var.private_cluster_config.enable_private_nodes ? true : (
-          var.private_cluster_config.master_ipv4_cidr_block == null ? false :
-      can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}/28$", var.private_cluster_config.master_ipv4_cidr_block))))
-      error_message = "master_ipv4_cidr_block must be a valid IPv4 /28 CIDR block when private nodes are enabled"
+      !var.private_cluster_config.enable_private_nodes ? true : (
+        var.private_cluster_config.private_endpoint_subnetwork != null ? true : (
+        var.private_cluster_config.master_ipv4_cidr_block == null ? false :
+        can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}/28$", var.private_cluster_config.master_ipv4_cidr_block)))))
+      error_message = "master_ipv4_cidr_block must be a valid IPv4 /28 CIDR block when private nodes are enabled and private_endpoint_subnetwork is not specified"
     }
 
     precondition {
